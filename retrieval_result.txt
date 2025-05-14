@@ -1,0 +1,8 @@
+📥 上传图像路径: ./1.jpeg
+✅ 预测类别: Normal
+
+Top-1: ./chest_xray_balanced\train\NORMAL\IM-0210-0001.jpeg | Label: Normal | Dist: 1.4142
+Top-2: ./chest_xray_balanced\train\NORMAL\copy1_IM-0210-0001.jpeg | Label: Normal | Dist: 1.4142
+Top-3: ./chest_xray_balanced\train\NORMAL\copy2_IM-0210-0001.jpeg | Label: Normal | Dist: 1.4142
+Top-4: ./chest_xray_balanced\train\NORMAL\copy1_IM-0662-0001.jpeg | Label: Normal | Dist: 1.2575
+Top-5: ./chest_xray_balanced\train\NORMAL\IM-0662-0001.jpeg | Label: Normal | Dist: 1.2575
