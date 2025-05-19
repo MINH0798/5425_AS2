@@ -1,0 +1,9 @@
+📥 上传图像路径: retrieval_vis\query_image_0_1747652084.png
+✅ 预测类别: Pneumonia
+⏱️ 检索耗时: 0.0137 秒
+
+Top-1: ./chest_xray_balanced\train\PNEUMONIA\person591_bacteria_2429.jpeg | Label: Pneumonia | Dist: 1.2676
+Top-2: ./chest_xray_balanced\train\PNEUMONIA\person279_virus_576.jpeg | Label: Pneumonia | Dist: 1.2644
+Top-3: ./chest_xray_balanced\train\PNEUMONIA\person518_bacteria_2200.jpeg | Label: Pneumonia | Dist: 1.2629
+Top-4: ./chest_xray_balanced\train\PNEUMONIA\person1489_virus_2594.jpeg | Label: Pneumonia | Dist: 1.2609
+Top-5: ./chest_xray_balanced\train\NORMAL\copy1_NORMAL2-IM-1280-0001.jpeg | Label: Normal | Dist: 1.2608

@@ -5,9 +5,9 @@ import matplotlib.pyplot as plt
 from retrieval import predict_and_search
 
 def evaluate_query_batch(
-    test_features_path="test_features.npy",
-    test_labels_path="test_labels.npy",
-    test_paths_path="test_paths.npy",
+    test_features_path="retrieval_vis/test_features.npy",
+    test_labels_path="retrieval_vis/test_labels.npy",
+    test_paths_path="retrieval_vis/test_paths.npy",
     knn_model=None,
     faiss_index=None,
     train_labels=None,
@@ -21,6 +21,14 @@ def evaluate_query_batch(
     """
     批量评估测试样本的分类准确率、Top-1 精度、Top-K 检索一致性。
     """
+    if not os.path.exists(test_features_path):
+        raise FileNotFoundError(f"❌ test_features_path not found: {test_features_path}")
+    if not os.path.exists(test_labels_path):
+        raise FileNotFoundError(f"❌ test_labels_path not found: {test_labels_path}")
+    if not os.path.exists(test_paths_path):
+        raise FileNotFoundError(f"❌ test_paths_path not found: {test_paths_path}")
+
+    #
     os.makedirs(save_dir, exist_ok=True)
 
     # 加载测试集
@@ -31,7 +39,7 @@ def evaluate_query_batch(
     # 分类准确率
     pred_labels = knn_model.predict(test_features)
     acc = accuracy_score(test_labels, pred_labels)
-    print(f"\n✅ KNN 分类准确率: {acc:.4f}")
+    print(f"\n✅KNN Classification Accuracy {acc:.4f}")
 
     top1_correct = 0
     precision_at_5 = []
@@ -74,3 +82,5 @@ def evaluate_query_batch(
     plt.tight_layout()
     plt.savefig(os.path.join(save_dir, "evaluation_scores.png"))
     plt.close()
+    print("✅ evaluate_query_batch returned:", acc, top1_acc, mean_p_at_5)
+    return acc, top1_acc, mean_p_at_5

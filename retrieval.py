@@ -56,40 +56,22 @@ def extract_features(loader, model, device, save_prefix):
                 print(f"Processing batch {batch_idx+1}/{total_batches} for {save_prefix}")
 
     if features:
-        np.save(f"{save_prefix}_features.npy", np.concatenate(features, axis=0))
-        np.save(f"{save_prefix}_labels.npy", np.concatenate(labels, axis=0))
-        np.save(f"{save_prefix}_paths.npy", np.array([p[0] for p in paths]))  # ✅ 保存路径部分
-
-    features, labels,paths = [], [], []
-    total_batches = len(loader)
-    with torch.no_grad():
-        for batch_idx, (images, lbls) in enumerate(loader):
-            images = images.to(device, non_blocking=True)
-            feats = model(images)
-            features.append(feats.cpu().numpy())
-            labels.append(lbls.numpy())
-            # ✅ 添加路径收集逻辑
-            start_idx = batch_idx * loader.batch_size
-            end_idx = start_idx + images.size(0)
-            paths.extend(loader.dataset.samples[start_idx:end_idx])
-            if (batch_idx + 1) % 10 == 0 or batch_idx == total_batches - 1:
-                print(f"Processing batch {batch_idx+1}/{total_batches} for {save_prefix}")
-    if features:
-        np.save(f"{save_prefix}_features.npy", np.concatenate(features, axis=0))
-        np.save(f"{save_prefix}_labels.npy", np.concatenate(labels, axis=0))
-        np.save(f"{save_prefix}_paths.npy", np.array([p[0] for p in paths]))  # ✅ 只保留路径部分
+        os.makedirs("retrieval_vis", exist_ok=True)
+        np.save(os.path.join("retrieval_vis", f"{save_prefix}_features.npy"), np.concatenate(features, axis=0))
+        np.save(os.path.join("retrieval_vis", f"{save_prefix}_labels.npy"), np.concatenate(labels, axis=0))
+        np.save(os.path.join("retrieval_vis", f"{save_prefix}_paths.npy"), np.array([p[0] for p in paths]))
+    print(f"✅ {save_prefix} features saved to 'retrieval_vis/'")  
 
 
 
 
 
-
-
-
-def predict_and_search(image_path, model, knn, index, train_labels, train_data, transform, device, topk=5, save_visual=True):
+def predict_and_search(image_path, model, knn, index, train_labels, train_data,
+                       transform, device, topk=5, save_visual=True,
+                       return_paths=False, return_details=False):
     print(f"\n📥 上传图像路径: {image_path}")
 
-    # ✅ 一次性获取 image（PIL） 和 image_tensor（模型输入）
+    # ✅ 读取和处理图像
     image, image_tensor = load_and_transform_image(image_path, transform)
     image_tensor = image_tensor.unsqueeze(0).to(device)
 
@@ -99,30 +81,45 @@ def predict_and_search(image_path, model, knn, index, train_labels, train_data, 
     image.save(upload_copy_path)
     print(f"📸 已保存上传图像副本到: {upload_copy_path}")
 
-    # ✅ 模型提取特征 + 分类 + 检索
+    # ✅ 提取特征并保存
     with torch.no_grad():
         feat = model(image_tensor).cpu().numpy()
-        
-# ✅ 保存 query 图像的特征向量，用于 Top-K 可视化分析
-    np.save("query_feature.npy", feat)
 
+    np.save("retrieval_vis/query_feature.npy", feat)
+
+    # ✅ KNN 预测类别
     pred_label = knn.predict(feat)[0]
     print(f"\n✅ 预测类别: {'Normal' if pred_label == 0 else 'Pneumonia'}")
 
+    # ✅ FAISS 检索
     start = time.time()
     distances, indices = index.search(feat.astype('float32'), topk)
     duration = time.time() - start
     print(f"⏱️ 检索耗时: {duration:.4f} 秒")
 
     print("\n===== Top-{} 相似图像结果 =====".format(topk))
-    result_lines = [f"📥 上传图像路径: {image_path}", f"✅ 预测类别: {'Normal' if pred_label == 0 else 'Pneumonia'}", ""]
+    result_lines = [f"📥 上传图像路径: {image_path}",
+                    f"✅ 预测类别: {'Normal' if pred_label == 0 else 'Pneumonia'}",
+                    f"⏱️ 检索耗时: {duration:.4f} 秒", ""]
+
+    # ✅ 初始化返回值列表
+    topk_paths = []
+    topk_labels = []
+    topk_distances = []
 
     fig, axes = plt.subplots(1, topk, figsize=(topk * 3, 3)) if save_visual else (None, None)
 
     for i, idx in enumerate(indices[0]):
         label = train_labels[idx]
         path = train_data.samples[idx][0]
-        result_line = f"Top-{i+1}: {path} | Label: {'Normal' if label == 0 else 'Pneumonia'} | Dist: {distances[0][i]:.4f}"
+        label_str = 'Normal' if label == 0 else 'Pneumonia'
+        dist = distances[0][i]
+
+        topk_paths.append(path)
+        topk_labels.append(label_str)
+        topk_distances.append(dist)
+
+        result_line = f"Top-{i+1}: {path} | Label: {label_str} | Dist: {dist:.4f}"
         result_lines.append(result_line)
         print(result_line)
 
@@ -130,7 +127,7 @@ def predict_and_search(image_path, model, knn, index, train_labels, train_data, 
             img = Image.open(path).convert('RGB')
             axes[i].imshow(img)
             axes[i].axis('off')
-            axes[i].set_title(f"Top-{i+1}\n{'Normal' if label == 0 else 'Pneumonia'}")
+            axes[i].set_title(f"Top-{i+1}\n{label_str}")
 
     if save_visual:
         plt.tight_layout()
@@ -139,3 +136,10 @@ def predict_and_search(image_path, model, knn, index, train_labels, train_data, 
 
     with open("retrieval_result.txt", "w", encoding="utf-8") as f:
         f.write("\n".join(result_lines))
+
+    if return_paths and return_details:
+        return list(zip(topk_paths, topk_labels, topk_distances)), pred_label
+    elif return_paths:
+        return topk_paths
+    else:
+        return

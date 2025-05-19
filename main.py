@@ -27,10 +27,10 @@ if __name__ == "__main__":
     extract_features(train_loader, model, device, "train")
     extract_features(test_loader, model, device, "test")
 
-    train_feats = np.load("train_features.npy").astype('float32')
-    train_labels = np.load("train_labels.npy")
-    test_feats = np.load("test_features.npy").astype('float32')
-    test_labels = np.load("test_labels.npy")
+    train_feats = np.load("retrieval_vis/train_features.npy").astype('float32')
+    train_labels = np.load("retrieval_vis/train_labels.npy")
+    test_feats = np.load("retrieval_vis/test_features.npy").astype('float32')
+    test_labels = np.load("retrieval_vis/test_labels.npy")
 
     index = build_faiss_index(train_feats)
     knn = build_knn_classifier(train_feats, train_labels, k=5)
@@ -47,9 +47,9 @@ if __name__ == "__main__":
 
 
     evaluate_query_batch(
-    test_features_path="test_features.npy",
-    test_labels_path="test_labels.npy",
-    test_paths_path="test_paths.npy",
+    test_features_path="retrieval_vis/test_features.npy",
+    test_labels_path="retrieval_vis/test_labels.npy",
+    test_paths_path="retrieval_vis/test_paths.npy",
     knn_model=knn,
     faiss_index=index,
     train_labels=train_labels,
